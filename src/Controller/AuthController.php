@@ -7,6 +7,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Annotation\Route;
 use App\Entity\User;
 use App\Controller\JWTauth;
+use Doctrine\Persistence\ManagerRegistry;
 
 
 class AuthController extends AbstractController{
@@ -18,7 +19,7 @@ class AuthController extends AbstractController{
         }
         $content = $req->toArray();
         $user = new User();
-        $user->setEmail($content['email']);
+        $user->setUsername($content['username']);
         $hash = $user->getPassword();
         if(!$hash){
             return $this->json(['message' => 'Invalid username / password']);
@@ -28,6 +29,7 @@ class AuthController extends AbstractController{
         //$user = new User();
         if($verify){
             JWTauth::issueJWT($content['username']);
+            JWTauth::issueRefresh($content['username']);
             return $this->json([
                 'message' => 'Success',
             ]);
@@ -38,7 +40,7 @@ class AuthController extends AbstractController{
         }
     }
 
-    #[Route('/reset', name: 'root', methods:['POST'])]
+    #[Route('/reset', name: 'reset', methods:['PUT'])]
     public function reset(Request $req): Response{
         if($req->cookies->get('BEARER')){
             return $this->json(['message' => 'You are already logged in']);
@@ -55,5 +57,14 @@ class AuthController extends AbstractController{
         return $this->json([
             'message' => 'Success',
         ]);
+    }
+
+    #[Route('/logout', name: 'logout', methods:['DELETE'])]
+    public function logout(ManagerRegistry $doctrine, Request $req): Response{
+        if(!$req->cookies->get('BEARER')){
+            return $this->json(['message' => 'You\'re not logged in']);
+        }
+        JWTauth::delete($doctrine, $req->cookies->get('REFRESH'));
+        return $this->json(['message' => 'Logged out']);
     }
 }

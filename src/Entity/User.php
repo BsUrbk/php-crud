@@ -30,6 +30,9 @@ class User
     #[ORM\Column(type: Types::TEXT)]
     private ?string $password = null;
 
+    #[ORM\OneToOne(mappedBy: 'userId', cascade: ['persist', 'remove'])]
+    private ?RefreshToken $refreshTokenId = null;
+
     public function getId(): ?int
     {
         return $this->id;
@@ -91,6 +94,23 @@ class User
     public function setPassword(string $password): self
     {
         $this->password = $password;
+
+        return $this;
+    }
+
+    public function getRefreshTokenId(): ?RefreshToken
+    {
+        return $this->refreshTokenId;
+    }
+
+    public function setRefreshTokenId(RefreshToken $refreshTokenId): self
+    {
+        // set the owning side of the relation if necessary
+        if ($refreshTokenId->getUserId() !== $this) {
+            $refreshTokenId->setUserId($this);
+        }
+
+        $this->refreshTokenId = $refreshTokenId;
 
         return $this;
     }

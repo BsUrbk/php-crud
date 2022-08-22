@@ -5,6 +5,9 @@ use DateTimeImmutable;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Firebase\JWT\JWT;
 use Firebase\Jwt\Key;
+use App\Entity\User;
+use App\Entity\RefreshToken;
+use Doctrine\Persistence\ManagerRegistry;
 
 class JWTauth extends AbstractController{
     public static function issueJWT(string $username): void{
@@ -15,11 +18,39 @@ class JWTauth extends AbstractController{
             'nbf' => $iat->getTimestamp(),
             'expire' => $iat->modify('+15 minutes')->getTimestamp(),
             'user' => $username,
-
         ];
         
         $jwt = JWT::encode($payload, $_ENV['SECRET'], 'HS256');
         setcookie('BEARER', $jwt, time()+900,"/",$_ENV['HOSTNAME'],false,true);
+    }
+
+    public static function issueRefresh(string $username): void{
+        $iat = new DateTimeImmutable();
+        $payload =[
+            'iat' => $iat->getTimestamp(),
+            'iss' => $_ENV['HOSTNAME'],
+            'nbf' => $iat->getTimestamp(),
+            'expire' => $iat->modify('+30 days')->getTimestamp(),
+            'user' => $username,
+        ];
+
+        $user = new User();
+        $user->setUsername($username);
+        $jwt = JWT::encode($payload, $_ENV['SECRET'], 'HS256');
+        $rt = new RefreshToken;
+        $rt->setToken($jwt);
+        $rt->setUserId($user);
+        setcookie('REFRESH', $jwt, time()+108000,"/",$_ENV['HOSTNAME'],false,true);
+    }
+
+    public static function delete(ManagerRegistry $doctrine, string $cookie): void{
+        $rt = new RefreshToken;
+        $rt->setToken($cookie);
+        $entityManager = $doctrine->getManager();
+        $entityManager->remove($rt);
+        $entityManager->flush();
+        setcookie('BEARER', "", time()-9999,"/",$_ENV['HOSTNAME'],false,true);
+        setcookie('REFRESH', "", time()-9999,"/",$_ENV['HOSTNAME'],false,true);
     }
 
     public static function verify($jwt){
