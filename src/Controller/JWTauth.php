@@ -4,7 +4,7 @@ namespace App\Controller;
 use DateTimeImmutable;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Firebase\JWT\JWT;
-use Firebase\Jwt\Key;
+use Firebase\JWT\Key;
 use App\Entity\User;
 use App\Entity\RefreshToken;
 use Doctrine\Persistence\ManagerRegistry;
@@ -24,7 +24,9 @@ class JWTauth extends AbstractController{
         setcookie('BEARER', $jwt, time()+900,"/",$_ENV['HOSTNAME'],false,true);
     }
 
-    public static function issueRefresh(string $username): void{
+    public static function issueRefresh(ManagerRegistry $doctrine, string $username): void{
+        $entityManager = $doctrine->getManager();
+
         $iat = new DateTimeImmutable();
         $payload =[
             'iat' => $iat->getTimestamp(),
@@ -34,21 +36,25 @@ class JWTauth extends AbstractController{
             'user' => $username,
         ];
 
-        $user = new User();
-        $user->setUsername($username);
+        $user = $doctrine->getRepository(User::class)->findOneBy(['username' => $username]);
         $jwt = JWT::encode($payload, $_ENV['SECRET'], 'HS256');
         $rt = new RefreshToken;
         $rt->setToken($jwt);
-        $rt->setUserId($user);
+        $rt->setUsertoken($user);
+
+        $entityManager->persist($rt);
+        $entityManager->flush();
+
         setcookie('REFRESH', $jwt, time()+108000,"/",$_ENV['HOSTNAME'],false,true);
     }
 
     public static function delete(ManagerRegistry $doctrine, string $cookie): void{
-        $rt = new RefreshToken;
-        $rt->setToken($cookie);
+        $rt = $doctrine->getRepository(RefreshToken::class)->findOneBy(['token' => $cookie]);
+
         $entityManager = $doctrine->getManager();
         $entityManager->remove($rt);
         $entityManager->flush();
+
         setcookie('BEARER', "", time()-9999,"/",$_ENV['HOSTNAME'],false,true);
         setcookie('REFRESH', "", time()-9999,"/",$_ENV['HOSTNAME'],false,true);
     }
@@ -56,7 +62,8 @@ class JWTauth extends AbstractController{
     public static function verify($jwt){
         JWT::$leeway = 60;
         $decoded = JWT::decode($jwt, new Key($_ENV['SECRET'], 'HS256'));
-        return $decoded;
+        $decoded_array = (array) $decoded;
+        return $decoded_array;
     }
 }
 
