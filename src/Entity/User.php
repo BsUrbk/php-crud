@@ -5,59 +5,49 @@ namespace App\Entity;
 use App\Repository\UserRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Uid\Uuid;
 
 #[ORM\Entity(repositoryClass: UserRepository::class)]
 #[ORM\Table(name: '`user`')]
 class User
 {
     #[ORM\Id]
-    #[ORM\GeneratedValue]
-    #[ORM\Column]
-    private ?int $id = null;
+    #[ORM\Column(type: 'uuid')]
+    #[ORM\GeneratedValue(strategy: 'CUSTOM')]
+    #[ORM\CustomIdGenerator(class: 'doctrine.uuid_generator')]
+    private $id;
 
-    #[ORM\Column(length: 255)]
-    private ?string $name = null;
-
-    #[ORM\Column(length: 255)]
-    private ?string $surname = null;
+    #[ORM\Column(length: 30)]
+    private ?string $username = null;
 
     #[ORM\Column(length: 255)]
     private ?string $email = null;
 
-    #[ORM\Column(length: 255)]
-    private ?string $username = null;
-
     #[ORM\Column(type: Types::TEXT)]
     private ?string $password = null;
 
-    #[ORM\OneToOne(mappedBy: 'userId', cascade: ['persist', 'remove'])]
-    private ?RefreshToken $refreshTokenId = null;
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $firstName = null;
 
-    public function getId(): ?int
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $lastName = null;
+
+    #[ORM\OneToOne(mappedBy: 'usertoken', cascade: ['persist', 'remove'])]
+    private ?RefreshToken $refreshToken = null;
+
+    public function getId(): ?Uuid
     {
         return $this->id;
     }
 
-    public function getName(): ?string
+    public function getUsername(): ?string
     {
-        return $this->name;
+        return $this->username;
     }
 
-    public function setName(string $name): self
+    public function setUsername(string $username): self
     {
-        $this->name = $name;
-
-        return $this;
-    }
-
-    public function getSurname(): ?string
-    {
-        return $this->surname;
-    }
-
-    public function setSurname(string $surname): self
-    {
-        $this->surname = $surname;
+        $this->username = $username;
 
         return $this;
     }
@@ -74,18 +64,6 @@ class User
         return $this;
     }
 
-    public function getUsername(): ?string
-    {
-        return $this->username;
-    }
-
-    public function setUsername(string $username): self
-    {
-        $this->username = $username;
-
-        return $this;
-    }
-
     public function getPassword(): ?string
     {
         return $this->password;
@@ -98,19 +76,48 @@ class User
         return $this;
     }
 
-    public function getRefreshTokenId(): ?RefreshToken
+    public function getFirstName(): ?string
     {
-        return $this->refreshTokenId;
+        return $this->firstName;
     }
 
-    public function setRefreshTokenId(RefreshToken $refreshTokenId): self
+    public function setFirstName(?string $firstName): self
     {
-        // set the owning side of the relation if necessary
-        if ($refreshTokenId->getUserId() !== $this) {
-            $refreshTokenId->setUserId($this);
+        $this->firstName = $firstName;
+
+        return $this;
+    }
+
+    public function getLastName(): ?string
+    {
+        return $this->lastName;
+    }
+
+    public function setLastName(?string $lastName): self
+    {
+        $this->lastName = $lastName;
+
+        return $this;
+    }
+
+    public function getRefreshToken(): ?RefreshToken
+    {
+        return $this->refreshToken;
+    }
+
+    public function setRefreshToken(?RefreshToken $refreshToken): self
+    {
+        // unset the owning side of the relation if necessary
+        if ($refreshToken === null && $this->refreshToken !== null) {
+            $this->refreshToken->setUsertoken(null);
         }
 
-        $this->refreshTokenId = $refreshTokenId;
+        // set the owning side of the relation if necessary
+        if ($refreshToken !== null && $refreshToken->getUsertoken() !== $this) {
+            $refreshToken->setUsertoken($this);
+        }
+
+        $this->refreshToken = $refreshToken;
 
         return $this;
     }

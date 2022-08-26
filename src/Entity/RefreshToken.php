@@ -5,23 +5,24 @@ namespace App\Entity;
 use App\Repository\RefreshTokenRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Uid\Uuid;
 
 #[ORM\Entity(repositoryClass: RefreshTokenRepository::class)]
 class RefreshToken
 {
     #[ORM\Id]
-    #[ORM\GeneratedValue]
-    #[ORM\Column]
-    private ?int $id = null;
+    #[ORM\Column(type: 'uuid')]
+    #[ORM\GeneratedValue(strategy: 'CUSTOM')]
+    #[ORM\CustomIdGenerator(class: 'doctrine.uuid_generator')]
+    private $id;
 
     #[ORM\Column(type: Types::TEXT)]
     private ?string $token = null;
 
-    #[ORM\OneToOne(inversedBy: 'refreshTokenId', cascade: ['persist', 'remove'])]
-    #[ORM\JoinColumn(nullable: false)]
-    private ?User $userId = null;
+    #[ORM\OneToOne(inversedBy: 'refreshToken', cascade: ['persist', 'remove'])]
+    private ?User $usertoken = null;
 
-    public function getId(): ?int
+    public function getId(): ?Uuid
     {
         return $this->id;
     }
@@ -38,14 +39,14 @@ class RefreshToken
         return $this;
     }
 
-    public function getUserId(): ?User
+    public function getUsertoken(): ?User
     {
-        return $this->userId;
+        return $this->usertoken;
     }
 
-    public function setUserId(User $userId): self
+    public function setUsertoken(?User $usertoken): self
     {
-        $this->userId = $userId;
+        $this->usertoken = $usertoken;
 
         return $this;
     }
