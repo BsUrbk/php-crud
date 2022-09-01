@@ -38,9 +38,7 @@ class JWTauth extends AbstractController{
 
         $user = $doctrine->getRepository(User::class)->findOneBy(['username' => $username]);
         $jwt = JWT::encode($payload, $_ENV['SECRET'], 'HS256');
-        $rt = new RefreshToken;
-        $rt->setToken($jwt);
-        $rt->setUsertoken($user);
+        $rt = new RefreshToken($jwt, $user);
 
         $entityManager->persist($rt);
         $entityManager->flush();

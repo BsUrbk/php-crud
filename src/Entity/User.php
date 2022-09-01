@@ -6,6 +6,7 @@ use App\Repository\UserRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
+use Symfony\Component\Validator\Constraints as Assert;
 use Symfony\Component\Uid\Uuid;
 
 #[ORM\Entity(repositoryClass: UserRepository::class)]
@@ -20,6 +21,7 @@ class User
     private $id;
 
     #[ORM\Column(length: 30)]
+    #[Assert\Unique]
     private ?string $username = null;
 
     #[ORM\Column(length: 255)]
@@ -41,10 +43,11 @@ class User
         $this->username = $username;
         $this->email = $email;
         $this->password = $password;
-        if(isset($firstName)){
+        $this->firstName = $firstName;
+        if(!is_null($firstName)){
             $this->firstName = $firstName;
         }
-        if(isset($lastName)){
+        if(!is_null($firstName)){
             $this->lastName = $lastName;
         }
        return $this; 

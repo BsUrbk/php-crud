@@ -22,6 +22,12 @@ class RefreshToken
     #[ORM\OneToOne(inversedBy: 'refreshToken', cascade: ['persist', 'remove'])]
     private ?User $usertoken = null;
 
+    public function __construct(?string $token, ?User $usertoken){
+        $this->token = $token;
+        $this->usertoken = $usertoken;
+        return $this;
+    }
+
     public function getId(): ?Uuid
     {
         return $this->id;
