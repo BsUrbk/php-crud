@@ -47,11 +47,15 @@ class JWTauth extends AbstractController{
     }
 
     public static function delete(ManagerRegistry $doctrine, string $cookie): void{
-        $rt = $doctrine->getRepository(RefreshToken::class)->findOneBy(['token' => $cookie]);
+        $conn = $doctrine->getConnection();
 
-        $entityManager = $doctrine->getManager();
-        $entityManager->remove($rt);
-        $entityManager->flush();
+        $query = '
+        DELETE FROM "refresh_token"
+        WHERE token LIKE :cookie
+        ';
+
+        $stmt = $conn->prepare($query);
+        $stmt->executeQuery(['cookie' => $cookie]);
 
         setcookie('BEARER', "", time()-9999,"/",$_ENV['HOSTNAME'],false,true);
         setcookie('REFRESH', "", time()-9999,"/",$_ENV['HOSTNAME'],false,true);
