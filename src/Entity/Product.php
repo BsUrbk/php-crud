@@ -15,8 +15,39 @@ class Product
     #[ORM\CustomIdGenerator(class: 'doctrine.uuid_generator')]
     private $id;
 
+    #[ORM\Column(length: 255)]
+    private ?string $name = null;
+
+    #[ORM\Column]
+    private ?int $quantity = null;
+
+    #[ORM\Column(length: 255)]
+    private ?string $location = null;
+
+    public function __construct(string $name, int $quantity, string $location){
+        $this->name = $name;
+        $this->quantity = $quantity;
+        $this->location = $location;
+        return $this;
+    }
+
     public function getId(): ?int
     {
         return $this->id;
+    }
+
+    public function getName(): ?string
+    {
+        return $this->name;
+    }
+
+    public function getQuantity(): ?int
+    {
+        return $this->quantity;
+    }
+
+    public function getLocation(): ?string
+    {
+        return $this->location;
     }
 }
