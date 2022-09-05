@@ -110,8 +110,9 @@ class AuthController extends AbstractController{
         if(!$id){
             return $this->json(['message' => 'No user exists with such email'], 400);
         }
-        $user->setEmail($content['newemail']);
-        flush();
+        $entityManager = $doctrine->getManager();
+        $user->setPassword($content['password']);
+        $entityManager->flush();
         return $this->json([
             'message' => 'Success',
         ], 200);

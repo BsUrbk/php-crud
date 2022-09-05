@@ -64,8 +64,11 @@ class JWTauth extends AbstractController{
     public static function verify($jwt){
         JWT::$leeway = 60;
         $decoded = JWT::decode($jwt, new Key($_ENV['SECRET'], 'HS256'));
-        $decoded_array = (array) $decoded;
-        return $decoded_array;
+        if($decoded->fault){
+            return true;
+        }else{
+            return false;
+        }
     }
 }
 
