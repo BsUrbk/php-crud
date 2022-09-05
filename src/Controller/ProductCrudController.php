@@ -4,14 +4,10 @@ namespace App\Controller;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Annotation\Route;
-use App\Entity\User;
-use App\Entity\RefreshToken;
 use App\Entity\Product;
 use App\Controller\JWTauth;
-use Doctrine\ORM\Query\Expr\Math;
 use Doctrine\Persistence\ManagerRegistry;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\Validator\Constraints\Regex;
 
 class ProductCrudController extends AbstractController{
     #[Route('/get-all-products', name: 'get-all-products', methods: ['POST'])]
