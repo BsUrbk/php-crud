@@ -41,13 +41,34 @@ class Product
         return $this->name;
     }
 
+    public function setName(string $name): self
+    {
+        $this->name = $name;
+
+        return $this;
+    }
+
     public function getQuantity(): ?int
     {
         return $this->quantity;
     }
 
+    public function setQuantity(string $quantity): self
+    {
+        $this->quantity = $quantity;
+        
+        return $this;
+    }
+
     public function getLocation(): ?string
     {
         return $this->location;
+    }
+
+    public function setLocation(string $location): self
+    {
+        $this->location = $location;
+        
+        return $this;
     }
 }
