@@ -1,7 +1,7 @@
 
 # php-crud
 
-Nothing to see here yet
+Create, read, update, delete panel for db records
 ## Stack
 
 [Symfony](https://symfony.com/)
