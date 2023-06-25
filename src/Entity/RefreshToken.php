@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Entity;
 
 use App\Repository\RefreshTokenRepository;
@@ -10,6 +12,11 @@ use Symfony\Component\Uid\Uuid;
 #[ORM\Entity(repositoryClass: RefreshTokenRepository::class)]
 class RefreshToken
 {
+    public const REFRESH = 'REFRESH';
+    public const USERTOKEN = 'usertoken';
+    public const BEARER = 'BEARER';
+    public const TOKEN = 'token';
+
     #[ORM\Id]
     #[ORM\Column(type: 'uuid')]
     #[ORM\GeneratedValue(strategy: 'CUSTOM')]

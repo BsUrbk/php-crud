@@ -1,115 +1,114 @@
 <?php
+
+declare(strict_types=1);
+
 namespace App\Controller;
 
+use App\Entity\Product;
+use App\Entity\RefreshToken;
+use App\Repository\ProductRepository;
+use App\Service\ProductService;
+use App\Util\AuthorizationTrait;
+use App\Util\JWT\JWTauth;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\Routing\Annotation\Route;
-use App\Entity\Product;
-use App\Controller\JWTauth;
-use Doctrine\Persistence\ManagerRegistry;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\Serializer\Encoder\JsonEncoder;
+use Symfony\Component\Serializer\SerializerInterface;
+use Throwable;
 
 class ProductCrudController extends AbstractController{
-    #[Route('/get-all-products', name: 'get-all-products', methods: ['POST'])]
-    public function getAllProducts(Request $req, ManagerRegistry $doctrine): Response{
-        if(is_null($req->cookies->get('BEARER'))){
-            return $this->json(['message' => 'You are not logged in']);
+    use AuthorizationTrait;
+
+    #[Route('/get-all-products', name: 'get-all-products', methods: ['GET'])]
+    public function getAllProducts(
+        Request $req,
+        ProductRepository $productRepository,
+        SerializerInterface $serializer,
+    ): Response {
+        try {
+            $this->denyUnauthorizedRequest($req);
+            JWTauth::verify($req->cookies->get(RefreshToken::BEARER));
+            $result = $serializer->serialize($productRepository->findAll() ?? [], JsonEncoder::FORMAT);;
+        } catch (Throwable $e) {
+            return $this->json([
+                'message' => $e->getMessage()
+            ], $e->getCode());
         }
-        $verify = JWTauth::verify($req->cookies->get('BEARER'));
 
-        if($verify){
-            return $this->json(['message' => 'Invalid jwt']);
-        }
-
-        $result = $doctrine->getRepository(Product::class)->findAll();
-
-        return $this->json(['products' => $result]);
+        return $this->json($result);
     }
 
-    #[Route('/add-procuct', name: 'add-product', methods: ['POST'])]
-    public function addProduct(Request $req, ManagerRegistry $doctrine): Response{
-        if(is_null($req->cookies->get('BEARER'))){
-            return $this->json(['message' => 'You are not logged in']);
+    #[Route('/add-product', name: 'add-product', methods: ['POST'])]
+    public function addProduct(
+        Request $req,
+        ProductService $productService,
+    ): Response {
+        try {
+            $this->denyUnauthorizedRequest($req);
+            JWTauth::verify($req->cookies->get(RefreshToken::BEARER));
+            $productService->addNewProduct($req);
+        } catch (Throwable $e) {
+            return $this->json([
+                'message' => $e->getMessage(),
+            ], $e->getCode());
         }
-        $verify = JWTauth::verify($req->cookies->get('BEARER'));
-
-        if($verify){
-            return $this->json(['message' => 'Invalid jwt']);
-        }
-        
-        $content = $req->toArray();
-        $product = new Product($content['name'], $content['quantity'], $content['location']);
-        $entityManager = $doctrine->getManager();
-        $entityManager->persist($product);
-        $entityManager->flush();
 
         return $this->json(['message' => 'Product has been added to the database']);
     }
 
     #[Route('/update-product', name: 'update-product', methods: ['PUT'])]
-    public function updateProduct(Request $req, ManagerRegistry $doctrine): Response{
-        if(is_null($req->cookies->get('BEARER'))){
-            return $this->json(['message' => 'You are not logged in']);
+    public function updateProduct(
+        Request $req,
+        ProductService $productService,
+    ): Response {
+        try {
+            $this->denyUnauthorizedRequest($req);
+            JWTauth::verify($req->cookies->get(RefreshToken::BEARER));
+            $productService->updateProduct($req);
+        } catch (Throwable $e) {
+            return $this->json([
+                'message' => $e->getMessage(),
+            ], $e->getCode());
         }
-        $verify = JWTauth::verify($req->cookies->get('BEARER'));
 
-        if($verify){
-            return $this->json(['message' => 'Invalid jwt']);
-        }
-
-        $content = $req->toArray();
-        $product = $doctrine->getRepository(Product::class)->findOneBy(['id' => $content['id']]);
-
-        if(!$product){
-            return $this->json(['message' => 'Product not found'], 404);
-        }
-        $entityManager = $doctrine->getManager();
-        switch($content['field']){
-            case 'name':
-                $product->setName($content['name']);
-                break;
-            case 'quantity':
-                $product->setQuantity($content['quantity']);
-                break;
-            case 'location':
-                $product->setLocation($content['location']);
-                break;
-            default:
-                return $this->json(['message' => 'Invalid field name']);
-                break;
-        }
-        $entityManager->flush();
-        return $this->json(['message' => 'Product '.$content['field'].' has been updated']);
+        return $this->json(['message' => 'Product has been updated']);
     }
 
     #[Route('/delete-product', name: 'delete-product', methods: ['DELETE'])]
-    public function deleteProduct(Request $req, ManagerRegistry $doctrine): Response{
-        if(is_null($req->cookies->get('BEARER'))){
-            return $this->json(['message' => 'You are not logged in']);
+    public function deleteProduct(
+        Request $req,
+        ProductService $productService,
+    ): Response {
+        try {
+            $this->denyUnauthorizedRequest($req);
+            JWTauth::verify($req->cookies->get(RefreshToken::BEARER));
+            $productService->deleteProduct($req);
+        } catch (Throwable $e) {
+            return $this->json([
+                'message' => $e->getMessage(),
+            ], $e->getCode());
         }
-        $verify = JWTauth::verify($req->cookies->get('BEARER'));
-
-        if($verify){
-            return $this->json(['message' => 'Invalid jwt']);
-        }
-
-        $content = $req->toArray();
-
-        $product = $doctrine->getRepository(Product::class)->findOneBy(['id' => $content['id']]);
-        
-        if(!$product){
-            return $this->json(['message' => 'Product not found'], 404);
-        }
-
-        $query = '
-        DELETE FROM "product"
-        WHERE id LIKE :id
-        ';
-
-        $conn = $doctrine->getConnection();
-        $stmt = $conn->prepare($query);
-        $stmt->executeQuery(['id' => $content['id']]);
 
         return $this->json(['message' => 'Product has been deleted']);
+    }
+
+    #[Route("/get-product-by-name", name: 'get-product-by-name', methods: ['POST'])]
+    public function getProductsByName(
+        Request $req,
+        ProductRepository $productRepository,
+    ): Response {
+        try {
+            $this->denyUnauthorizedRequest($req);
+            JWTauth::verify($req->cookies->get(RefreshToken::BEARER));
+            $products = $productRepository->findByName($req->toArray()[Product::NAME] ?? null);
+        } catch (Throwable $e) {
+            return $this->json([
+                'message' => $e->getMessage(),
+            ], $e->getCode());
+        }
+
+        return $this->json($products);
     }
 }

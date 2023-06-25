@@ -1,132 +1,117 @@
 <?php
+
+declare(strict_types=1);
+
 namespace App\Controller;
 
+use App\Entity\RefreshToken;
+use App\Repository\RefreshTokenRepository;
+use App\Service\AuthService;
+use App\Util\AuthorizationTrait;
+use App\Util\JWT\JWTauth;
+use JetBrains\PhpStorm\Deprecated;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\Routing\Annotation\Route;
-use App\Entity\User;
-use App\Entity\RefreshToken;
-use App\Controller\JWTauth;
-use Doctrine\Persistence\ManagerRegistry;
 use Symfony\Component\HttpFoundation\Response;
-
+use Symfony\Component\Routing\Annotation\Route;
+use Throwable;
 
 class AuthController extends AbstractController{
+    use AuthorizationTrait;
 
     #[Route('/register', name: 'register', methods:['POST'])]
-    public function register(Request $req, ManagerRegistry $doctrine): Response{
-        if($req->cookies->get('BEARER')){
-            return $this->json(['message' => 'You are already logged in'], 200);
+    public function register(
+        Request $req,
+        AuthService $authService,
+    ): Response {
+        try {
+            $this->denyAuthorizedRequest($req);
+            $authService->registerNewUser($req->toArray());
+        } catch (Throwable $e) {
+            return $this->json([
+                'message' => $e->getMessage(),
+            ], $e->getCode());
         }
-
-        $entityManager = $doctrine->getManager();
-
-        $content = $req->toArray();
-
-        $unique = $doctrine->getRepository(User::class)->findOneBy(['username' => $content['username']]);
-
-        if($unique){
-            return $this->json(['message' => 'User with such username already exists']);
-        }
-
-        $passwordHash = password_hash($content['password'], PASSWORD_BCRYPT, ['cost' => 13]);
-        if(!isset($content['firstName'])){
-            $content['firstName'] = "";
-        }
-        if(!isset($content['lastName'])){
-            $content['lastName'] = "";
-        }
-        
-        $user = new User($content['username'], $content['email'], $passwordHash, $content['firstName'], $content['lastName']);
-
-        $entityManager->persist($user);
-        $entityManager->flush();
 
         return $this->json(['message' => 'User successfully registered'], 200);
     }
 
     #[Route('/login', name: 'login', methods:['POST'])]
-    public function login(ManagerRegistry $doctrine, Request $req): Response{
-        if($req->cookies->get('BEARER')){
-            return $this->json(['message' => 'You are already logged in']);
-        }
-        $content = $req->toArray();
-
-        $token = $doctrine->getRepository(RefreshToken::class)->findOneBy(['token' => $req->cookies->get('REFRESH')]);
-        if($token){
-            JWTauth::delete($doctrine, $req->cookies->get('REFRESH'));
-        }else{
-            $user = $doctrine->getRepository(User::class)->findOneBy(['username' => $content['username']]);
-            $token = $doctrine->getRepository(RefreshToken::class)->findOneBy(['usertoken' => $user]);
-            if($token){
-                JWTauth::delete($doctrine, $token->getToken());
-            }     
-        }
-
-        $user = $doctrine->getRepository(User::class)->findOneBy(['username' => $content['username']]);
-        $hash = $user->getPassword();
-
-        if(is_null($hash)){
-            return $this->json(['message' => 'Invalid username / password'], 400);
-        }
-        $verify = password_verify($content['password'], $hash);
-
-        if($verify){
-            JWTauth::issueJWT($content['username']);
-            JWTauth::issueRefresh($doctrine, $content['username']);
+    public function login(
+        Request $req,
+        AuthService $authService,
+    ): Response{
+        try {
+            $this->denyAuthorizedRequest($req);
+            $authService->loginUser($req);
+        } catch (Throwable $e) {
             return $this->json([
-                'message' => 'Success',
-            ], 200);
-        }else{
-            return $this->json([
-                'message' => 'Invalid username / password'
-            ], 400);
+                'message' => $e->getMessage(),
+            ], $e->getCode());
         }
+
+        return $this->json([
+            'message' => 'Login successful'
+        ], 200);
     }
 
-    #[Route('/refresh', name: 'refresh', methods:['POST'])]
-    public function refresh(ManagerRegistry $doctrine, Request $req): Response{
-        if(is_null($req->cookies->get('REFRESH'))){
-            return $this->json(['message' => 'You\'re not logged in']);
+    #[Route('/refresh', name: 'refresh', methods:['GET'])]
+    public function refresh(
+        Request $req,
+        AuthService $authService,
+    ): Response{
+        try {
+            $this->denyUnauthorizedRequest($req);
+            $authService->refreshToken($req);
+        } catch (Throwable $e) {
+            return $this->json([
+                'message' => $e->getMessage(),
+            ], $e->getCode());
         }
-        $token = $doctrine->getRepository(RefreshToken::class)->findOneBy(['token' => $req->cookies->get('REFRESH')]);
-        if($token){
-            $user = $token->getUsertoken();
-            JWTauth::issueJWT($user->getUsername());
-            return $this->json(['message' => 'success']);
-        }else{
-            return $this->json(['message' => 'Invalid refresh token'], 403);
-        }
+
+        return $this->json([
+            'meesage' => 'Success'
+        ], 200);
     }
 
     #[Route('/reset', name: 'reset', methods:['PUT'])]
-    public function reset(ManagerRegistry $doctrine, Request $req): Response{
-        if($req->cookies->get('BEARER')){
-            return $this->json(['message' => 'You are already logged in'], 403);
+    #[Deprecated('No 3rd party verification, anyone can reset the password')]
+    public function reset(
+        Request $req,
+        AuthService $authService,
+    ): Response{
+        try {
+            $this->denyAuthorizedRequest($req);
+            $authService->resetPassword($req);
+        } catch (Throwable $e) {
+            return $this->json([
+                'message' => $e->getMessage()
+            ], $e->getCode());
         }
-        $content = $req->toArray();
-        $user = $doctrine->getRepository(User::class)->findOneBy(['email' => $content['email']]);
-        $id = $user->getId();
-        if(!$id){
-            return $this->json(['message' => 'No user exists with such email'], 400);
-        }
-        $entityManager = $doctrine->getManager();
-        $user->setPassword($content['password']);
-        $entityManager->flush();
+
         return $this->json([
             'message' => 'Success',
         ], 200);
     }
 
     #[Route('/logout', name: 'logout', methods:['DELETE'])]
-    public function logout(ManagerRegistry $doctrine, Request $req): Response{
-        if(!$req->cookies->get('BEARER')){
-            return $this->json(['message' => 'You\'re not logged in'], 403);
+    public function logout(
+        Request $req,
+        RefreshTokenRepository $refreshTokenRepository,
+        JWTauth $JWTauth,
+    ): Response{
+        try {
+            $this->denyUnauthorizedRequest($req);
+            $token = $refreshTokenRepository->findOneBy([RefreshToken::TOKEN => $req->cookies->get(RefreshToken::REFRESH)]);
+            if(null !== $token){
+                $JWTauth->delete($token->getToken());
+            }
+        } catch (Throwable $e) {
+            return $this->json([
+                'message' => $e->getMessage(),
+            ], $e->getCode());
         }
-        $token = $doctrine->getRepository(RefreshToken::class)->findOneBy(['token' => $req->cookies->get('REFRESH')]);
-        if($token){
-            JWTauth::delete($doctrine, $req->cookies->get('REFRESH'));
-        }
-        return $this->json(['message' => $token], 200);
+
+        return $this->json(['message' => 'Success'], 200);
     }
 }

@@ -1,66 +1,47 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Repository;
 
 use App\Entity\Product;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
+use Symfony\Component\Serializer\Encoder\JsonEncoder;
+use Symfony\Component\Serializer\SerializerInterface;
+use Symfony\Component\Uid\Uuid;
 
-/**
- * @extends ServiceEntityRepository<Product>
- *
- * @method Product|null find($id, $lockMode = null, $lockVersion = null)
- * @method Product|null findOneBy(array $criteria, array $orderBy = null)
- * @method Product[]    findAll()
- * @method Product[]    findBy(array $criteria, array $orderBy = null, $limit = null, $offset = null)
- */
 class ProductRepository extends ServiceEntityRepository
 {
-    public function __construct(ManagerRegistry $registry)
-    {
+    public function __construct(
+        ManagerRegistry $registry,
+        private SerializerInterface $serializer,
+    ) {
         parent::__construct($registry, Product::class);
     }
 
-    public function add(Product $entity, bool $flush = false): void
-    {
-        $this->getEntityManager()->persist($entity);
-
-        if ($flush) {
-            $this->getEntityManager()->flush();
-        }
+    public function deleteById(Uuid $id): void {
+        $this->createQueryBuilder('q')
+            ->delete(Product::class, 'product')
+            ->andWhere('product.id = :id')
+            ->setParameters([
+                'id' => $id,
+            ])
+            ->getQuery()
+            ->execute()
+        ;
     }
 
-    public function remove(Product $entity, bool $flush = false): void
-    {
-        $this->getEntityManager()->remove($entity);
+    public function findByName(?string $name): ?string {
+        $products = $this->createQueryBuilder('q')
+            ->andWhere('q.name like :name')
+            ->setParameters([
+                'name' => '%' . $name . '%',
+            ])
+            ->getQuery()
+            ->execute()
+        ;
 
-        if ($flush) {
-            $this->getEntityManager()->flush();
-        }
+        return $this->serializer->serialize($products, JsonEncoder::FORMAT);
     }
-
-//    /**
-//     * @return Product[] Returns an array of Product objects
-//     */
-//    public function findByExampleField($value): array
-//    {
-//        return $this->createQueryBuilder('p')
-//            ->andWhere('p.exampleField = :val')
-//            ->setParameter('val', $value)
-//            ->orderBy('p.id', 'ASC')
-//            ->setMaxResults(10)
-//            ->getQuery()
-//            ->getResult()
-//        ;
-//    }
-
-//    public function findOneBySomeField($value): ?Product
-//    {
-//        return $this->createQueryBuilder('p')
-//            ->andWhere('p.exampleField = :val')
-//            ->setParameter('val', $value)
-//            ->getQuery()
-//            ->getOneOrNullResult()
-//        ;
-//    }
 }

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Entity;
 
 use App\Repository\UserRepository;
@@ -14,6 +16,12 @@ use Symfony\Component\Uid\Uuid;
 #[UniqueEntity('username')]
 class User
 {
+    public const USERNAME = 'username';
+    public const PASSWORD = 'password';
+    public const FIRSTNAME = 'firstName';
+    public const LASTNAME = 'lastName';
+    public const EMAIL = 'email';
+
     #[ORM\Id]
     #[ORM\Column(type: 'uuid')]
     #[ORM\GeneratedValue(strategy: 'CUSTOM')]
@@ -38,20 +46,6 @@ class User
 
     #[ORM\OneToOne(mappedBy: 'usertoken', cascade: ['persist', 'remove'])]
     private ?RefreshToken $refreshToken = null;
-
-    public function __construct(string $username, string $email, string $password, ?string $firstName, ?string $lastName){
-        $this->username = $username;
-        $this->email = $email;
-        $this->password = $password;
-        $this->firstName = $firstName;
-        if(!is_null($firstName)){
-            $this->firstName = $firstName;
-        }
-        if(!is_null($firstName)){
-            $this->lastName = $lastName;
-        }
-       return $this; 
-    }  
 
     public function getId(): ?Uuid
     {

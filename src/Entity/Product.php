@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Entity;
 
 use App\Repository\ProductRepository;
@@ -9,6 +11,10 @@ use Symfony\Component\Uid\Uuid;
 #[ORM\Entity(repositoryClass: ProductRepository::class)]
 class Product
 {
+    public const NAME = 'name';
+    public const QUANTITY = 'quantity';
+    public const LOCATION = 'location';
+
     #[ORM\Id]
     #[ORM\Column(type: 'uuid')]
     #[ORM\GeneratedValue(strategy: 'CUSTOM')]
@@ -24,14 +30,7 @@ class Product
     #[ORM\Column(length: 255)]
     private ?string $location = null;
 
-    public function __construct(string $name, int $quantity, string $location){
-        $this->name = $name;
-        $this->quantity = $quantity;
-        $this->location = $location;
-        return $this;
-    }
-
-    public function getId(): ?int
+    public function getId(): ?Uuid
     {
         return $this->id;
     }
@@ -53,7 +52,7 @@ class Product
         return $this->quantity;
     }
 
-    public function setQuantity(string $quantity): self
+    public function setQuantity(?int $quantity): self
     {
         $this->quantity = $quantity;
         
