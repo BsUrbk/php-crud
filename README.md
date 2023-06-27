@@ -55,7 +55,7 @@ if you're mad enough to actually use it
 }
 ```
 
-There is more but, idk, go figure
+There is more ,but idk, go figure
 
 ## Stack
 
